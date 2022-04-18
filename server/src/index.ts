@@ -1,5 +1,8 @@
-import express from 'express'
 import dotenv from 'dotenv'
+import express from 'express'
+import fs from 'fs'
+import https from 'https'
+
 import Room from './room'
 
 dotenv.config()
@@ -7,7 +10,8 @@ dotenv.config()
 const rooms: Map<Number, Room> = new Map()
 
 const app = express()
-const port = process.env.PORT
+const port = Number(process.env.PORT || 3000)
+const listenIp = process.env.LISTEN_IP || '0.0.0.0'
 
 /**
  * For every API request, verify that the room exists.
@@ -22,6 +26,13 @@ app.get('/', (req, res) => {
   res.send('Express + TypeScript Server')
 })
 
-app.listen(port, () => {
-  console.log(`[server]: Server is running at https://localhost:${port}`)
+const tls = {
+  cert: fs.readFileSync(process.env.CERT as string),
+  key: fs.readFileSync(process.env.KEY as string),
+}
+
+const httpsServer = https.createServer(tls, app)
+
+httpsServer.listen(port, listenIp, () => {
+  console.log(`[server]: Server is running at https://${listenIp}:${port}`)
 })
