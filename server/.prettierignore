@@ -1,0 +1,15 @@
+*.min.js
+**/node_modules/**
+
+# cache-dirs
+**/.cache
+
+# ignore built packages
+dist/**
+build/**
+
+# coverage
+coverage
+
+examples
+docs

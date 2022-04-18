@@ -1,0 +1,5 @@
+.env
+certs/
+node_modules/
+server/dist/
+.vscode/

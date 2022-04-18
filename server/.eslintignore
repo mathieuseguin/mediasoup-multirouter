@@ -1,0 +1,8 @@
+*.min.js
+**/node_modules/**
+
+docs
+examples
+
+dist/**
+build/**
