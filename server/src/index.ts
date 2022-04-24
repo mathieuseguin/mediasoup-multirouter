@@ -100,7 +100,7 @@ const getProducerOutRouter = (producerId: string) => {
 }
 
 io.on('connection', (socket: Socket) => {
-  socket.on('disconnect', () => {})
+  socket.on('disconnect', () => { })
 
   socket.on(
     'getRouterRtpCapabilities',
@@ -171,6 +171,7 @@ io.on('connection', (socket: Socket) => {
         const response: any = {
           status: 'success',
           transportParams: transportParams,
+          rtpTransportId: undefined,
         }
 
         if (type == 'producer') {

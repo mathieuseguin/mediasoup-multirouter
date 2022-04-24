@@ -4,6 +4,10 @@ import { RtpCodecCapability } from 'mediasoup/node/lib/RtpParameters'
 import { TransportListenIp } from 'mediasoup/node/lib/Transport'
 import { WorkerLogLevel, WorkerLogTag } from 'mediasoup/node/lib/Worker'
 
+import axios from 'axios'
+
+const ec2Url = 'http://169.254.169.254/latest/meta-data/public-ipv4'
+
 const config = {
   listenIp: process.env.LISTEN_IP || '127.0.0.1',
   listenPort: Number(process.env.PORT || 4000),
@@ -18,8 +22,8 @@ const config = {
   mediasoup: {
     workersCount: Object.keys(cpus()).length,
     worker: {
-      rtcMinPort: 10000,
-      rtcMaxPort: 10100,
+      rtcMinPort: 40000,
+      rtcMaxPort: 49999,
       logLevel: 'debug' as WorkerLogLevel,
       logTags: ['info', 'ice', 'dtls', 'rtp', 'sctp', 'rtcp'] as WorkerLogTag[],
     },
@@ -42,7 +46,10 @@ const config = {
       ] as RtpCodecCapability[],
     },
     webRtcTransport: {
-      listenIps: [{ ip: '127.0.0.1' }] as TransportListenIp[],
+      listenIps: [{
+        ip: '0.0.0.0',
+        announcedIp: process.env.ANNOUNCED_IP || undefined,
+      }] as TransportListenIp[],
       initialAvailableOutgoingBitrate: 1000000,
       minimumAvailableOutgoingBitrate: 600000,
       maxIncomingBitrate: 1500000,

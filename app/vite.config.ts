@@ -13,8 +13,8 @@ export default {
   ...baseConfig,
   server: {
     https: {
-      key: readFileSync('../certs/privkey.pem'),
-      cert: readFileSync('../certs/fullchain.pem'),
+      key: readFileSync('../certs/domain.key'),
+      cert: readFileSync('../certs/domain.crt'),
     },
     port: 3000,
   },

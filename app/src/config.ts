@@ -1,6 +1,6 @@
 const config = {
   socketio: {
-    host: 'https://whyd.localhost',
+    host: 'https://dev2.whyd.org',
     port: 4000,
   },
 }

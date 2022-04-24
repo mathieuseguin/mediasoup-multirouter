@@ -7,10 +7,9 @@ mp_drawing_styles = mp.solutions.drawing_styles
 mp_pose = mp.solutions.pose
 
 
-def get_pose(img):
+def get_pose(img, pose):
     imgRGB = cv2.cvtColor(img.copy(), cv2.COLOR_BGR2RGB)
     imgRGB.flags.writeable = False  # perf optimization
-    pose = mp_pose.Pose()
     results = pose.process(imgRGB)
     imgRGB.flags.writeable = True
     return results
@@ -29,12 +28,14 @@ def draw_position(img, results):
 
 
 def run():
-    gst_in = 'filesrc location=/app/orga_1_1.mp4 ! queue ! decodebin ! videoconvert ! appsink'
+    gst_in = 'filesrc location=./part_5_1.mp4 ! queue ! decodebin ! videoconvert ! appsink'
     cap_send = cv2.VideoCapture(gst_in, cv2.CAP_GSTREAMER)
 
     if not cap_send.isOpened():
         print('send: VideoCapture not opened')
         exit(0)
+
+    pose = mp_pose.Pose(model_complexity=0)
 
     i = 0
     while True:
@@ -44,8 +45,8 @@ def run():
             print('empty frame')
             break
 
-        # results = get_pose(frame)
-        # draw_position(frame, results)
+        results = get_pose(frame, pose)
+        draw_position(frame, results)
 
         # cv2.imwrite(f'/app/output_{i}.png', frame)
         cv2.imshow('receive', frame)
