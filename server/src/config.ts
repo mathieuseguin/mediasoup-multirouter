@@ -42,15 +42,20 @@ const config = {
       ] as RtpCodecCapability[],
     },
     webRtcTransport: {
-      listenIps: [
-        {
-          ip: '127.0.0.1',
-        },
-      ] as TransportListenIp[],
+      listenIps: [{ ip: '127.0.0.1' }] as TransportListenIp[],
       initialAvailableOutgoingBitrate: 1000000,
       minimumAvailableOutgoingBitrate: 600000,
       maxIncomingBitrate: 1500000,
       maxSctpMessageSize: 262144,
+      enableUdp: true,
+      enableTcp: true,
+      preferUdp: true,
+      enableSctp: true,
+    },
+    plainRtpTransport: {
+      listenIp: { ip: '127.0.0.1' },
+      rtcpMux: false, // False for GStreamer
+      comedia: false,
     },
   },
 }

@@ -1,3 +1,4 @@
+import child_process from 'child_process'
 import config from './config'
 import dotenv from 'dotenv'
 import express from 'express'
@@ -7,7 +8,13 @@ import Room from './room'
 
 import { createWorker } from 'mediasoup'
 import { Server as SocketIOServer, Socket } from 'socket.io'
-import { Consumer, PipeTransport, Producer, Router, Transport } from 'mediasoup/node/lib/types'
+import {
+  Consumer,
+  PipeTransport,
+  Producer,
+  Router,
+  Transport,
+} from 'mediasoup/node/lib/types'
 
 dotenv.config()
 
@@ -45,6 +52,7 @@ const inOutRouters: Map<string, string> = new Map()
 const transports: Map<string, Transport> = new Map()
 let inPipeTransport: PipeTransport
 let outPipeTransport: PipeTransport
+let opencv_process: child_process.ChildProcessWithoutNullStreams
 
 const createRouters = async () => {
   const { mediaCodecs } = config.mediasoup.router
@@ -125,32 +133,18 @@ io.on('connection', (socket: Socket) => {
       callback,
     ) => {
       try {
-        const {
-          listenIps,
-          maxIncomingBitrate,
-          initialAvailableOutgoingBitrate,
-        } = config.mediasoup.webRtcTransport
-
         const router =
           type == 'producer'
             ? inRouters.get(routerId)
             : outRouters.get(routerId)
 
         if (!router) throw 'Could not find router'
-        const transport = await router.createWebRtcTransport({
-          listenIps,
-          initialAvailableOutgoingBitrate,
-          enableUdp: true,
-          enableTcp: true,
-          preferUdp: true,
-          enableSctp: true,
-        })
 
-        console.log('transport', transport)
-
+        // Create WebRtcTransport
+        const rtcTrans = config.mediasoup.webRtcTransport
+        const transport = await router.createWebRtcTransport(rtcTrans)
+        await transport.setMaxIncomingBitrate(rtcTrans.maxIncomingBitrate)
         transportsRouter.set(transport.id, router.id)
-
-        await transport.setMaxIncomingBitrate(maxIncomingBitrate)
 
         transport.on('dtlsstatechange', (dtlsState) => {
           // RTCPeerConnection is probably closed
@@ -161,6 +155,7 @@ io.on('connection', (socket: Socket) => {
 
         transport.on('routerclose', () => {
           transport.close()
+          if (opencv_process) opencv_process.kill('SIGINT')
         })
 
         const transportParams = {
@@ -173,10 +168,28 @@ io.on('connection', (socket: Socket) => {
 
         transports.set(transport.id, transport)
 
-        callback({
+        const response: any = {
           status: 'success',
           transportParams: transportParams,
-        })
+        }
+
+        if (type == 'producer') {
+          // Create PlainRtpTransport
+          const rtpTrans = config.mediasoup.plainRtpTransport
+          const rtpTransport = await router.createPlainRtpTransport(rtpTrans)
+          // Connect the mediasoup RTP transport to the ports used by GStreamer
+          await rtpTransport.connect({
+            ip: '127.0.0.1',
+            port: 20000,
+            rtcpPort: 20001,
+          })
+
+          transports.set(rtpTransport.id, rtpTransport)
+
+          response['rtpTransportId'] = rtpTransport.id
+        }
+
+        callback(response)
       } catch (e) {
         console.log(e)
         callback({ status: 'failure' })
@@ -186,12 +199,16 @@ io.on('connection', (socket: Socket) => {
 
   socket.on(
     'produce',
-    async ({ transportId, kind, rtpParameters }, callback) => {
+    async ({ transportId, rtpTransportId, kind, rtpParameters }, callback) => {
       try {
         const transport = transports.get(transportId)
+        const rtpTransport = transports.get(rtpTransportId)
 
         if (!transport)
           throw new Error(`Transport with id "${transportId}" not found.`)
+
+        if (!rtpTransport)
+          throw new Error(`rtpTransport with id "${rtpTransportId}" not found.`)
 
         const producer = await transport.produce({ kind, rtpParameters })
         const inPipe = await inPipeTransport.consume({
@@ -204,8 +221,24 @@ io.on('connection', (socket: Socket) => {
         })
         producersTransport.set(outPipe.id, transport.id)
 
+        // Start the consumer paused
+        // Once the gstreamer process is ready to consume resume and send a keyframe
+
+        const codec = config.mediasoup.router.mediaCodecs[1]
+        const rtpConsumer = await rtpTransport.consume({
+          producerId: producer.id,
+          rtpCapabilities: {
+            codecs: [codec],
+            headerExtensions: [],
+          },
+          paused: true,
+        })
+
+        startOpenCV()
+
         callback({ status: 'success', id: outPipe.id })
       } catch (e) {
+        console.log(e)
         callback({ status: 'failure' })
       }
     },
@@ -262,6 +295,19 @@ io.on('connection', (socket: Socket) => {
     },
   )
 })
+
+const startOpenCV = () => {
+  console.log('starting OpenCV...')
+  opencv_process = child_process.spawn('python opencv.py', [], {
+    detached: false,
+    shell: true,
+  })
+
+  opencv_process.stdout.setEncoding('utf-8')
+  opencv_process.stdout.on('data', (msg) => console.log('OpenCV:', msg))
+  opencv_process.stderr.setEncoding('utf-8')
+  opencv_process.stderr.on('data', (msg) => console.log('OpenCV err:', msg))
+}
 
 const { listenIp, listenPort } = config
 httpsServer.listen(listenPort, listenIp, () => {

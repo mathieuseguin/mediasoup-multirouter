@@ -36,7 +36,7 @@ const App = () => {
   const createProducerTransport = useCallback(
     async (device: Device, routerId: string) => {
       if (!socket) return
-      const { transportParams } = await socket.asyncEmit(
+      const { transportParams, rtpTransportId } = await socket.asyncEmit(
         'createWebRtcTransport',
         { routerId, type: 'producer' },
       )
@@ -76,7 +76,13 @@ const App = () => {
           try {
             socket.emit(
               'produce',
-              { transportId: transport.id, kind, rtpParameters, appData },
+              {
+                transportId: transport.id,
+                rtpTransportId,
+                kind,
+                rtpParameters,
+                appData,
+              },
               ({
                 id,
                 status,
