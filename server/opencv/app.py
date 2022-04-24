@@ -1,5 +1,7 @@
 import cv2
+import sys
 import mediapipe as mp
+
 from multiprocessing import Process
 
 mp_draw = mp.solutions.drawing_utils
@@ -28,8 +30,13 @@ def draw_position(img, results):
 
 
 def run():
-    gst_in = 'filesrc location=./part_5_1.mp4 ! queue ! decodebin ! videoconvert ! appsink'
+    print('run')
+    # exit(0)
+    gst_in = 'udpsrc port=5000 caps="application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, payload=(int)96" ! rtph264depay ! h264parse ! decodebin ! videoconvert ! appsink sync=false'
+    # gst_in = 'filesrc location=/app/server/opencv/part_5_1.mp4 ! queue ! decodebin ! videoconvert ! appsink'
     cap_send = cv2.VideoCapture(gst_in, cv2.CAP_GSTREAMER)
+
+    print('cap_send', cap_send)
 
     if not cap_send.isOpened():
         print('send: VideoCapture not opened')
@@ -38,15 +45,17 @@ def run():
     pose = mp_pose.Pose(model_complexity=0)
 
     i = 0
+    print('yeah')
     while True:
         ret, frame = cap_send.read()
+        print('frame', frame)
 
         if not ret:
             print('empty frame')
             break
 
-        results = get_pose(frame, pose)
-        draw_position(frame, results)
+        # results = get_pose(frame, pose)
+        # draw_position(frame, results)
 
         # cv2.imwrite(f'/app/output_{i}.png', frame)
         cv2.imshow('receive', frame)
@@ -63,7 +72,10 @@ def run():
 
 
 if __name__ == '__main__':
-    # run()
+    print('opencv')
+    # cmd = ' '.join(sys.argv[1:])
+    # print('cmd')
+    # run(cmd)
     s = Process(target=run)
     s.start()
     s.join()

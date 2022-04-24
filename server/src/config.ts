@@ -4,10 +4,6 @@ import { RtpCodecCapability } from 'mediasoup/node/lib/RtpParameters'
 import { TransportListenIp } from 'mediasoup/node/lib/Transport'
 import { WorkerLogLevel, WorkerLogTag } from 'mediasoup/node/lib/Worker'
 
-import axios from 'axios'
-
-const ec2Url = 'http://169.254.169.254/latest/meta-data/public-ipv4'
-
 const config = {
   listenIp: process.env.LISTEN_IP || '127.0.0.1',
   listenPort: Number(process.env.PORT || 4000),

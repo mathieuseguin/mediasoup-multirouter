@@ -2,10 +2,12 @@
   "name": "server",
   "private": true,
   "scripts": {
+    "dev:server:ec2": "ANNOUNCED_IP=`curl -s http://169.254.169.254/latest/meta-data/public-ipv4` LISTEN_IP=0.0.0.0 yarn dev:server",
     "dev:server": "ts-node-dev --respawn -- src/index.ts"
   },
   "devDependencies": {
     "@types/express": "^4.17.13",
+    "@types/node": "^17.0.26",
     "@typescript-eslint/eslint-plugin": "^5.19.0",
     "@typescript-eslint/parser": "^5.19.0",
     "eslint": "^8.13.0",

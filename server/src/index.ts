@@ -1,3 +1,4 @@
+
 import child_process from 'child_process'
 import config from './config'
 import dotenv from 'dotenv'
@@ -15,6 +16,7 @@ import {
   Router,
   Transport,
 } from 'mediasoup/node/lib/types'
+import OpenCV from './opencv'
 
 dotenv.config()
 
@@ -235,7 +237,9 @@ io.on('connection', (socket: Socket) => {
           paused: true,
         })
 
-        startOpenCV()
+        console.log('starting opencv')
+        const opencv = new OpenCV({})
+        console.log('opencv started')
 
         callback({ status: 'success', id: outPipe.id })
       } catch (e) {
@@ -296,19 +300,6 @@ io.on('connection', (socket: Socket) => {
     },
   )
 })
-
-const startOpenCV = () => {
-  console.log('starting OpenCV...')
-  opencv_process = child_process.spawn('python opencv.py', [], {
-    detached: false,
-    shell: true,
-  })
-
-  opencv_process.stdout.setEncoding('utf-8')
-  opencv_process.stdout.on('data', (msg) => console.log('OpenCV:', msg))
-  opencv_process.stderr.setEncoding('utf-8')
-  opencv_process.stderr.on('data', (msg) => console.log('OpenCV err:', msg))
-}
 
 const { listenIp, listenPort } = config
 httpsServer.listen(listenPort, listenIp, () => {
